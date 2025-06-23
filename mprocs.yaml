@@ -1,8 +1,8 @@
 procs:
-  docker:
-    cmd: ['docker', 'compose', 'up', '--build']
-  down:
-    cmd: ['docker', 'compose', 'down']
-    autostart: false
+  # docker:
+  #   cmd: ['docker', 'compose', 'up', '--build']
+  # down:
+  #   cmd: ['docker', 'compose', 'down']
+    # autostart: false
   bun: 
     cmd: ['bun', 'run', 'dev']
