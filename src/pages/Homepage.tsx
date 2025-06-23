@@ -1,3 +1,20 @@
+import { authClient } from "../auth-client";
+
 export const Homepage = () => {
-  return <div className="grid place-items-center text-center h-screen">HI</div>;
+  const session = authClient.useSession();
+
+  const login = () => {
+    authClient.signIn.social({
+      provider: "spotify",
+    });
+  };
+
+  return (
+    <div className="grid place-items-center h-screen">
+      <div>
+        <pre>{JSON.stringify(session, null, 2)}</pre>
+        <button onClick={login}>Log In</button>
+      </div>
+    </div>
+  );
 };

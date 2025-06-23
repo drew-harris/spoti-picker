@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { okAsync } from "neverthrow";
+import { auth } from "./auth";
 
 export type ApiType = typeof api;
 
@@ -9,6 +9,9 @@ export const api = new Hono()
   .use((c, next) => {
     console.log("Request received:", c.req.url.toString());
     return next();
+  })
+  .on(["POST", "GET"], "/auth/*", (c) => {
+    return auth.handler(c.req.raw);
   })
   .onError((err, c) => {
     console.error(err);
