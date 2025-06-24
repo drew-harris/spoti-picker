@@ -3,6 +3,7 @@ import { RPCHandler } from "@orpc/server/fetch";
 import {} from "drizzle-orm";
 import { Hono } from "hono";
 import { Err, Ok, fromPromise } from "neverthrow";
+import { z } from "zod";
 import { auth } from "./auth";
 import { ErrorWithStatus, unwrap } from "./safeRoute";
 import { buildSdkFromUserId } from "./spotify";
@@ -56,6 +57,30 @@ export const router = base.use(ensureUnwrap).router({
       ).map((p) => p.items);
       return unwrap(profile);
     }),
+    randomAlbum: withSpotify
+      .input(z.number())
+      .handler(async ({ context, input }) => {
+        const album = fromPromise(
+          context.spotify.currentUser.albums.savedAlbums(50),
+          () =>
+            new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+        )
+          .andThen((prev) =>
+            fromPromise(
+              context.spotify.currentUser.albums.savedAlbums(50, 50),
+              () =>
+                new ErrorWithStatus(
+                  "Couldn't get spotify profile",
+                  "NOT_FOUND",
+                ),
+            ).map((n) => [...prev.items, ...n.items]),
+          )
+          .map((p) => {
+            // Get random album at index
+            return p[input];
+          });
+        return unwrap(album);
+      }),
   },
 });
 
