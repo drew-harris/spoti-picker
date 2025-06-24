@@ -9,6 +9,7 @@ import { auth } from "./auth";
 import { schema, useDb } from "./db";
 import { env } from "./env";
 import { ErrorWithStatus, unwrap } from "./safeRoute";
+import { buildSdkFromUserId } from "./spotify";
 
 export type ApiType = typeof api;
 
@@ -23,6 +24,7 @@ const ensureUnwrap = os.middleware(async ({ next }) => {
 });
 
 const base = os.$context<{ session: PossibleSession }>();
+
 const authedOnly = os
   .$context<{ session: PossibleSession }>()
   .use(async ({ next, context }) => {
@@ -39,44 +41,12 @@ const authedOnly = os
   });
 
 const withSpotify = authedOnly.use(async ({ next, context }) => {
-  const userAccountResult = useDb((db) =>
-    db
-      .select()
-      .from(schema.account)
-      .where(
-        and(
-          eq(schema.account.userId, context.session.user.id),
-          eq(schema.account.providerId, "spotify"),
-        ),
-      )
-      .limit(1),
-  ).andThen((account) => {
-    if (account.length === 0) {
-      return errAsync(
-        new ErrorWithStatus("Couldn't find spotify account", "NOT_FOUND"),
-      );
-    } else {
-      const singleAccount = account[0];
-      if (!singleAccount?.accessToken || !singleAccount?.refreshToken) {
-        return errAsync(
-          new ErrorWithStatus("Couldn't find spotify tokens", "NOT_FOUND"),
-        );
-      }
-      return okAsync(
-        SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
-          access_token: singleAccount.accessToken,
-          expires_in: 999999,
-          refresh_token: singleAccount.refreshToken,
-          token_type: "Bearer",
-        }),
-      );
-    }
-  });
+  const sdkResult = buildSdkFromUserId(context.session.user.id);
 
   return next({
     context: {
       ...context,
-      spotify: await unwrap(userAccountResult),
+      spotify: await unwrap(sdkResult),
     },
   });
 });
