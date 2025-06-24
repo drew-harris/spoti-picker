@@ -10,7 +10,10 @@ export const AlbumView = ({ album }: { album: Album }) => {
   return (
     <div className="border border-neutral-800 text-center flex flex-col items-center p-2 rounded">
       <h1>{album.album.name}</h1>
-      <img className="w-50 h-50" src={album.album.images[1]?.url} />
+      <img
+        className="w-30 h-30 md:w-50 md:h-50"
+        src={album.album.images[1]?.url}
+      />
     </div>
   );
 };
@@ -27,7 +30,7 @@ export const Homepage = () => {
           album={data?.at(randomNum)!}
         />
       )}
-      <div className="grid p-2 gap-2 grid-cols-4">
+      <div className="grid p-2 gap-2 grid-cols-2 md:grid-cols-4">
         {data?.map((album) => (
           <AlbumView key={album.album.id} album={album} />
         ))}
