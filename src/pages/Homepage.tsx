@@ -16,7 +16,11 @@ export const Homepage = () => {
   return (
     <div className="grid place-items-center h-screen">
       <div>
-        <pre>{JSON.stringify(data, null, 2)}</pre>
+        {data?.items?.map((album) => (
+          <div>{album.album.name}</div>
+        ))}
+      </div>
+      <div>
         {error && (
           <pre className="text-red-500">{JSON.stringify(error, null, 2)}</pre>
         )}

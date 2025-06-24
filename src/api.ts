@@ -1,9 +1,14 @@
 import { os, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
+import { SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { and, eq } from "drizzle-orm";
+import {} from "drizzle-orm";
 import { Hono } from "hono";
-import { Err, Ok, okAsync } from "neverthrow";
+import { Err, Ok, errAsync, fromPromise, okAsync } from "neverthrow";
 import { auth } from "./auth";
-import { unwrap } from "./safeRoute";
+import { schema, useDb } from "./db";
+import { env } from "./env";
+import { ErrorWithStatus, unwrap } from "./safeRoute";
 
 export type ApiType = typeof api;
 
@@ -33,11 +38,58 @@ const authedOnly = os
     });
   });
 
+const withSpotify = authedOnly.use(async ({ next, context }) => {
+  const userAccountResult = useDb((db) =>
+    db
+      .select()
+      .from(schema.account)
+      .where(
+        and(
+          eq(schema.account.userId, context.session.user.id),
+          eq(schema.account.providerId, "spotify"),
+        ),
+      )
+      .limit(1),
+  ).andThen((account) => {
+    if (account.length === 0) {
+      return errAsync(
+        new ErrorWithStatus("Couldn't find spotify account", "NOT_FOUND"),
+      );
+    } else {
+      const singleAccount = account[0];
+      if (!singleAccount?.accessToken || !singleAccount?.refreshToken) {
+        return errAsync(
+          new ErrorWithStatus("Couldn't find spotify tokens", "NOT_FOUND"),
+        );
+      }
+      return okAsync(
+        SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
+          access_token: singleAccount.accessToken,
+          expires_in: 999999,
+          refresh_token: singleAccount.refreshToken,
+          token_type: "Bearer",
+        }),
+      );
+    }
+  });
+
+  return next({
+    context: {
+      ...context,
+      spotify: await unwrap(userAccountResult),
+    },
+  });
+});
+
 export const router = base.use(ensureUnwrap).router({
   album: {
-    getAlbums: authedOnly.handler(({ context }) => {
-      const result = okAsync({ youAre: context.session.user.id });
-      return unwrap(result);
+    getAlbums: withSpotify.handler(async ({ context }) => {
+      const profile = fromPromise(
+        context.spotify.currentUser.albums.savedAlbums(),
+        (err) =>
+          new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+      );
+      return unwrap(profile);
     }),
   },
 });
