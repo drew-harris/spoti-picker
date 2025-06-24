@@ -1,12 +1,20 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
 services:
   spoti-picker:
+    env_file: .env
+    environment:
+      DB_PATH: /data/db.sqlite
     networks:
       - caddy
     build: .
     ports:
       - "3000:3000"
+    volumes:
+      - db:/data
 
 networks:
   caddy:
     external: true
+
+volumes:
+  db:

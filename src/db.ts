@@ -1,9 +1,10 @@
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { ResultAsync, fromPromise } from "neverthrow";
+import { env } from "./env.ts";
 
 export * as schema from "./schema.ts";
 
-export const rawDb = drizzle("db.sqlite");
+export const rawDb = drizzle(env.DB_PATH);
 
 export const useDb = <T>(
   useFn: (db: typeof rawDb) => Promise<T>,

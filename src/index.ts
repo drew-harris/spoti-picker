@@ -1,6 +1,8 @@
 import { serve } from "bun";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import indexHtml from "../public/index.html";
 import { api } from "./api";
+import { rawDb } from "./db";
 
 serve({
   websocket: {
@@ -18,6 +20,10 @@ serve({
   },
   port: 3000,
   development: process.env.NODE_ENV !== "production",
+});
+
+migrate(rawDb, {
+  migrationsFolder: "./drizzle",
 });
 
 console.log("Server started on port 3000");

@@ -11,7 +11,7 @@ export const RequireAuthLayout = ({ children }: { children: ReactNode }) => {
   if (session.isPending) {
     return <div></div>;
   }
-  if (!session) {
+  if (!session.data) {
     return (
       <div>
         <button type="button" onClick={login}>

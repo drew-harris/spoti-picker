@@ -1,13 +1,13 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { orpc } from "../fetcher";
 
 export const Homepage = () => {
-  const { data } = useSuspenseQuery(orpc.album.getAlbums.queryOptions());
+  const { data } = useQuery(orpc.album.getAlbums.queryOptions());
 
   return (
     <div className="grid place-items-center h-screen">
       <div>
-        {data.map((album) => (
+        {data?.map((album) => (
           <div key={album.album.id}>{album.album.name}</div>
         ))}
       </div>
