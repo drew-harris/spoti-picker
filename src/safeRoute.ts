@@ -67,8 +67,9 @@ export class ErrorWithStatus extends Error {
   constructor(
     message: string,
     public code: ORPCErrorCode,
+    { cause }: { cause?: Error | unknown } = {},
   ) {
-    super(message);
+    super(message, { cause });
   }
 }
 
