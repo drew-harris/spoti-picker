@@ -23,6 +23,9 @@ export const Homepage = () => {
         <button type="button" onClick={login}>
           Log In
         </button>
+        <button type="button" onClick={() => authClient.signOut()}>
+          Log OUT
+        </button>
       </div>
     </div>
   );

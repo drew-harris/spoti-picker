@@ -17,16 +17,34 @@ const ensureUnwrap = os.middleware(async ({ next }) => {
   return value;
 });
 
-export const router = os.use(ensureUnwrap).router({
+const base = os.$context<{ session: PossibleSession }>();
+const authedOnly = os
+  .$context<{ session: PossibleSession }>()
+  .use(async ({ next, context }) => {
+    if (context.session) {
+      return next({
+        context: {
+          session: context.session,
+        },
+      });
+    }
+    throw new ORPCError("NOT_AUTHORIZED", {
+      message: "NOT_AUTHORIZED",
+    });
+  });
+
+export const router = base.use(ensureUnwrap).router({
   album: {
-    getAlbums: os.handler(() => {
-      const result = okAsync({ hello: "world" });
+    getAlbums: authedOnly.handler(({ context }) => {
+      const result = okAsync({ youAre: context.session.user.id });
       return unwrap(result);
     }),
   },
 });
 
 const orpcHandler = new RPCHandler(router);
+
+type PossibleSession = Awaited<ReturnType<typeof auth.api.getSession>>;
 
 export const api = new Hono()
   .basePath("/api")
@@ -39,7 +57,13 @@ export const api = new Hono()
     return auth.handler(c.req.raw);
   })
   .on(["POST", "GET"], "/orpc/*", async (c) => {
-    const r = await orpcHandler.handle(c.req.raw, { prefix: "/api/orpc" });
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const r = await orpcHandler.handle(c.req.raw, {
+      prefix: "/api/orpc",
+      context: {
+        session,
+      },
+    });
     if (r.matched) {
       return r.response;
     } else {
