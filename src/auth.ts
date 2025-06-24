@@ -4,6 +4,12 @@ import { rawDb, schema } from "./db";
 import { env } from "./env";
 
 export const auth = betterAuth({
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // Cache duration in seconds
+    },
+  },
   database: drizzleAdapter(rawDb, {
     provider: "sqlite",
     schema: schema,
