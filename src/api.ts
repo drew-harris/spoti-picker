@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import { pinoLogger } from "hono-pino";
 import { Err, Ok, errAsync, fromPromise } from "neverthrow";
 import { auth } from "./auth";
+import { cachedResult } from "./caching";
 import { log } from "./logging";
 import { unwrap } from "./safeRoute";
 import { buildSdkFromUserId, getUsersAlbums } from "./spotify";
@@ -53,13 +54,17 @@ export const router = base.use(ensureUnwrap).router({
   album: {
     getAlbums: withSpotify.handler(async ({ context }) => {
       log.info({ user: context.session.user.id }, "Fetching albums");
-      const albums = getUsersAlbums(context.spotify).map((a) =>
-        a.map((album) => ({
-          id: album.album.id,
-          name: album.album.name,
-          url: album.album.external_urls.spotify,
-          img: album.album.images[1]?.url,
-        })),
+      const albums = cachedResult(
+        () =>
+          getUsersAlbums(context.spotify).map((a) =>
+            a.map((album) => ({
+              id: album.album.id,
+              name: album.album.name,
+              url: album.album.external_urls.spotify,
+              img: album.album.images[1]?.url,
+            })),
+          ),
+        ["albums", context.session.user.id],
       );
       return unwrap(albums);
     }),
