@@ -19,7 +19,7 @@ export const Homepage = () => {
 
   return (
     <div className="h-screen">
-      <div className="grid gap-2 grid-cols-4">
+      <div className="grid p-2 gap-2 grid-cols-4">
         {data?.map((album) => (
           <AlbumView key={album.album.id} album={album} />
         ))}
