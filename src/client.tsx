@@ -5,6 +5,7 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router";
 import { Toaster } from "sonner";
+import { ErrorBoundary, SimpleErrorDisplay } from "./components/ErrorBoundary";
 import { RequireAuthLayout } from "./layouts/RequireAuth";
 import { Homepage } from "./pages/Homepage";
 
@@ -26,7 +27,9 @@ const router = createBrowserRouter([
     path: "/",
     element: (
       <RequireAuthLayout>
-        <Homepage />
+        <ErrorBoundary fallback={SimpleErrorDisplay}>
+          <Homepage />
+        </ErrorBoundary>
       </RequireAuthLayout>
     ),
   },

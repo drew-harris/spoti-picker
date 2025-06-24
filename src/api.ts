@@ -1,13 +1,9 @@
 import { os, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
-import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { and, eq } from "drizzle-orm";
 import {} from "drizzle-orm";
 import { Hono } from "hono";
-import { Err, Ok, errAsync, fromPromise, okAsync } from "neverthrow";
+import { Err, Ok, fromPromise } from "neverthrow";
 import { auth } from "./auth";
-import { schema, useDb } from "./db";
-import { env } from "./env";
 import { ErrorWithStatus, unwrap } from "./safeRoute";
 import { buildSdkFromUserId } from "./spotify";
 
@@ -58,7 +54,7 @@ export const router = base.use(ensureUnwrap).router({
         context.spotify.currentUser.albums.savedAlbums(30),
         (err) =>
           new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
-      ).andTee((v) => console.log(v.items.map((a) => a.album.name)));
+      );
       return unwrap(profile);
     }),
   },
