@@ -6,12 +6,12 @@ import { Toaster } from "sonner";
 import { Homepage } from "./pages/Homepage";
 
 const queryClient = new QueryClient({
-  // defaultOptions: {
-  //   queries: {
-  //     // Speed up development
-  //     retry: false,
-  //   },
-  // },
+  defaultOptions: {
+    queries: {
+      // Speed up development
+      retry: false,
+    },
+  },
 });
 
 const router = createBrowserRouter([

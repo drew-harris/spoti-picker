@@ -1,3 +1,4 @@
+import { ORPCError, type ORPCErrorCode } from "@orpc/client";
 import type { Context } from "hono";
 import type { JSONValue } from "hono/utils/types";
 import { ResultAsync } from "neverthrow";
@@ -65,29 +66,28 @@ export const safeRoute = <
 export class ErrorWithStatus extends Error {
   constructor(
     message: string,
-    public status: number,
+    public code: ORPCErrorCode,
   ) {
     super(message);
   }
 }
 
-export const unwrap = async <T>(
-  result: ResultAsync<T, Error>,
-): Promise<Response | T> => {
-  return new Promise((resolve) => {
+export const unwrap = async <T>(result: ResultAsync<T, Error>): Promise<T> => {
+  return new Promise((resolve, reject) => {
     result.match(
       (value) => {
         resolve(value);
       },
       (error) => {
-        let status = 500;
+        let code: ORPCErrorCode = "INTERNAL_SERVER_ERROR";
         if (error instanceof ErrorWithStatus) {
-          status = error.status;
+          code = error.code;
         }
-        resolve(
-          new Response(JSON.stringify({ error: error.message }), {
-            status,
-            headers: { "Content-Type": "application/json" },
+        console.log(error);
+        reject(
+          new ORPCError(code, {
+            cause: error,
+            message: error.message,
           }),
         );
       },
