@@ -52,9 +52,8 @@ export const router = base.use(ensureUnwrap).router({
     getAlbums: withSpotify.handler(async ({ context }) => {
       const profile = fromPromise(
         context.spotify.currentUser.albums.savedAlbums(30),
-        (err) =>
-          new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
-      );
+        () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+      ).map((p) => p.items);
       return unwrap(profile);
     }),
   },
