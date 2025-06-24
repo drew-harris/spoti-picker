@@ -2,9 +2,11 @@ import { os, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import {} from "drizzle-orm";
 import { Hono } from "hono";
-import { Err, Ok, fromPromise } from "neverthrow";
+import { pinoLogger } from "hono-pino";
+import { Err, Ok, errAsync, fromPromise } from "neverthrow";
 import { z } from "zod";
 import { auth } from "./auth";
+import { log } from "./logging";
 import { ErrorWithStatus, unwrap } from "./safeRoute";
 import { buildSdkFromUserId } from "./spotify";
 
@@ -51,6 +53,7 @@ const withSpotify = authedOnly.use(async ({ next, context }) => {
 export const router = base.use(ensureUnwrap).router({
   album: {
     getAlbums: withSpotify.handler(async ({ context }) => {
+      log.info({ user: context.session.user.id }, "Fetching albums");
       const albums = fromPromise(
         context.spotify.currentUser.albums.savedAlbums(50),
         () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
@@ -73,10 +76,11 @@ type PossibleSession = Awaited<ReturnType<typeof auth.api.getSession>>;
 export const api = new Hono()
   .basePath("/api")
   // Logging middleware
-  .use((c, next) => {
-    console.log("Request received:", c.req.url.toString());
-    return next();
-  })
+  .use(
+    pinoLogger({
+      pino: { level: "warn" },
+    }),
+  )
   .on(["POST", "GET"], "/auth/*", (c) => {
     return auth.handler(c.req.raw);
   })

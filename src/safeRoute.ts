@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import type { JSONValue } from "hono/utils/types";
 import { ResultAsync } from "neverthrow";
 import { type ZodSchema, z } from "zod";
+import { log } from "./logging";
 
 export const safeRoute = <
   T extends JSONValue,
@@ -84,7 +85,7 @@ export const unwrap = async <T>(result: ResultAsync<T, Error>): Promise<T> => {
         if (error instanceof ErrorWithStatus) {
           code = error.code;
         }
-        console.log(error);
+        log.error(error);
         reject(
           new ORPCError(code, {
             cause: error,
