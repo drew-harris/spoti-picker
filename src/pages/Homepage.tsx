@@ -18,14 +18,15 @@ export const AlbumView = ({ album }: { album: Album }) => {
 export const Homepage = () => {
   const { data } = useQuery(orpc.album.getAlbums.queryOptions());
   const [randomNum, setRandomNum] = useState(Math.floor(Math.random() * 100));
-  const { data: random, status: randomStatus } = useQuery(
-    orpc.album.randomAlbum.queryOptions({ input: randomNum }),
-  );
 
   return (
     <div className="h-screen">
-      {randomStatus === "pending" && <div>Loading random album..</div>}
-      {random && <AlbumView key={random?.album.id} album={random} />}
+      {data && (
+        <AlbumView
+          key={data?.at(randomNum)!.album.id}
+          album={data?.at(randomNum)!}
+        />
+      )}
       <div className="grid p-2 gap-2 grid-cols-4">
         {data?.map((album) => (
           <AlbumView key={album.album.id} album={album} />

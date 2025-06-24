@@ -51,36 +51,18 @@ const withSpotify = authedOnly.use(async ({ next, context }) => {
 export const router = base.use(ensureUnwrap).router({
   album: {
     getAlbums: withSpotify.handler(async ({ context }) => {
-      const profile = fromPromise(
+      const albums = fromPromise(
         context.spotify.currentUser.albums.savedAlbums(50),
-        (e) => new Error("Couldn't get spotify profile", { cause: e }),
-      ).map((p) => p.items);
-      return unwrap(profile);
-    }),
-    randomAlbum: withSpotify
-      .input(z.number())
-      .handler(async ({ context, input }) => {
-        const album = fromPromise(
-          context.spotify.currentUser.albums.savedAlbums(50),
+        () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+      ).andThen((prev) =>
+        fromPromise(
+          context.spotify.currentUser.albums.savedAlbums(50, 50),
           () =>
             new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
-        )
-          .andThen((prev) =>
-            fromPromise(
-              context.spotify.currentUser.albums.savedAlbums(50, 50),
-              () =>
-                new ErrorWithStatus(
-                  "Couldn't get spotify profile",
-                  "NOT_FOUND",
-                ),
-            ).map((n) => [...prev.items, ...n.items]),
-          )
-          .map((p) => {
-            // Get random album at index
-            return p[input];
-          });
-        return unwrap(album);
-      }),
+        ).map((n) => [...prev.items, ...n.items]),
+      );
+      return unwrap(albums);
+    }),
   },
 });
 
