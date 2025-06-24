@@ -20,6 +20,7 @@ export const AlbumView = ({ album }: { album: Album }) => {
 
 export const Homepage = () => {
   const { data } = useQuery(orpc.album.getAlbums.queryOptions());
+  const { data: isDev } = useQuery(orpc.isDev.queryOptions());
   const [randomNum, setRandomNum] = useState(Math.floor(Math.random() * 100));
 
   return (
@@ -32,6 +33,7 @@ export const Homepage = () => {
           <AlbumView key={album.id} album={album} />
         ))}
       </div>
+      {isDev && <div>Dev mode</div>}
     </div>
   );
 };

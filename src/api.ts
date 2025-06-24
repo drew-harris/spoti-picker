@@ -3,7 +3,7 @@ import { RPCHandler } from "@orpc/server/fetch";
 import {} from "drizzle-orm";
 import { Hono } from "hono";
 import { pinoLogger } from "hono-pino";
-import { Err, Ok, errAsync, fromPromise } from "neverthrow";
+import { Err, Ok } from "neverthrow";
 import { auth } from "./auth";
 import { cachedResult } from "./caching";
 import { log } from "./logging";
@@ -69,6 +69,9 @@ export const router = base.use(ensureUnwrap).router({
       return unwrap(albums);
     }),
   },
+  isDev: base.handler(async ({}) => {
+    return process.env.NODE_ENV !== "production";
+  }),
 });
 
 const orpcHandler = new RPCHandler(router);
