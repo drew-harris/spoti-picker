@@ -28,3 +28,16 @@ export const buildSdkFromUserId = (userId: string) =>
       refresh_token: "", // Better auth handles refresh
     }),
   );
+
+export const getUsersAlbums = (spotify: SpotifyApi) => {
+  const albums = fromPromise(
+    spotify.currentUser.albums.savedAlbums(50),
+    () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+  ).andThen((prev) =>
+    fromPromise(
+      spotify.currentUser.albums.savedAlbums(50, 50),
+      () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
+    ).map((n) => [...prev.items, ...n.items]),
+  );
+  return albums;
+};

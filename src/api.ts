@@ -4,11 +4,10 @@ import {} from "drizzle-orm";
 import { Hono } from "hono";
 import { pinoLogger } from "hono-pino";
 import { Err, Ok, errAsync, fromPromise } from "neverthrow";
-import { z } from "zod";
 import { auth } from "./auth";
 import { log } from "./logging";
-import { ErrorWithStatus, unwrap } from "./safeRoute";
-import { buildSdkFromUserId } from "./spotify";
+import { unwrap } from "./safeRoute";
+import { buildSdkFromUserId, getUsersAlbums } from "./spotify";
 
 export type ApiType = typeof api;
 
@@ -54,15 +53,13 @@ export const router = base.use(ensureUnwrap).router({
   album: {
     getAlbums: withSpotify.handler(async ({ context }) => {
       log.info({ user: context.session.user.id }, "Fetching albums");
-      const albums = fromPromise(
-        context.spotify.currentUser.albums.savedAlbums(50),
-        () => new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
-      ).andThen((prev) =>
-        fromPromise(
-          context.spotify.currentUser.albums.savedAlbums(50, 50),
-          () =>
-            new ErrorWithStatus("Couldn't get spotify profile", "NOT_FOUND"),
-        ).map((n) => [...prev.items, ...n.items]),
+      const albums = getUsersAlbums(context.spotify).map((a) =>
+        a.map((album) => ({
+          id: album.album.id,
+          name: album.album.name,
+          url: album.album.external_urls.spotify,
+          img: album.album.images[1]?.url,
+        })),
       );
       return unwrap(albums);
     }),
