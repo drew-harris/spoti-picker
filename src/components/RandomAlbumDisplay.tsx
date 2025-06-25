@@ -1,4 +1,4 @@
-import { AlbumView, type AlbumFromDb } from "./AlbumView";
+import { type AlbumFromDb, AlbumView } from "./AlbumView";
 
 interface RandomAlbumDisplayProps {
   album: AlbumFromDb;
@@ -8,7 +8,13 @@ interface RandomAlbumDisplayProps {
   canGoNext: boolean;
 }
 
-export const RandomAlbumDisplay = ({ album, onBack, onNext, canGoBack, canGoNext }: RandomAlbumDisplayProps) => {
+export const RandomAlbumDisplay = ({
+  album,
+  onBack,
+  onNext,
+  canGoBack,
+  canGoNext,
+}: RandomAlbumDisplayProps) => {
   return (
     <div className="mb-6 relative">
       <h2 className="text-xl font-semibold mb-4">Random Pick</h2>
@@ -38,4 +44,5 @@ export const RandomAlbumDisplay = ({ album, onBack, onNext, canGoBack, canGoNext
       </div>
     </div>
   );
-}; 
+};
+

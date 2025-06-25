@@ -61,7 +61,9 @@ export const Homepage = () => {
         <h1 className="text-2xl font-bold mb-4">Spotify Album Picker</h1>
 
         {/* Ingestion Controls */}
-        <IngestionControls albumsCount={albums?.length || 0} />
+        <div className="absolute top-2 right-2">
+          <IngestionControls albumsCount={albums?.length || 0} />
+        </div>
 
         {/* Ingestion Progress - only show if not completed */}
         {ingestionProgress && ingestionProgress.status !== "completed" && (

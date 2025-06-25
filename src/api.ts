@@ -59,22 +59,22 @@ const withSpotify = authedOnly.use(async ({ next, context }) => {
 
 export const router = base.use(ensureUnwrap).router({
   album: {
-    getAlbums: withSpotify.handler(async ({ context }) => {
-      log.info({ user: context.session.user.id }, "Fetching albums");
-      const albums = cachedResult(
-        () =>
-          getUsersAlbums(context.spotify).map((a) =>
-            a.map((album) => ({
-              id: album.album.id,
-              name: album.album.name,
-              url: album.album.external_urls.spotify,
-              img: album.album.images[1]?.url,
-            })),
-          ),
-        ["albums", context.session.user.id],
-      );
-      return unwrap(albums);
-    }),
+    // getAlbums: withSpotify.handler(async ({ context }) => {
+    //   log.info({ user: context.session.user.id }, "Fetching albums");
+    //   const albums = cachedResult(
+    //     () =>
+    //       getUsersAlbums(context.spotify).map((a) =>
+    //         a.map((album) => ({
+    //           id: album.album.id,
+    //           name: album.album.name,
+    //           url: album.album.external_urls.spotify,
+    //           img: album.album.images[1]?.url,
+    //         })),
+    //       ),
+    //     ["albums", context.session.user.id],
+    //   );
+    //   return unwrap(albums);
+    // }),
 
     // Get albums from database
     getAlbumsFromDatabase: authedOnly.handler(async ({ context }) => {

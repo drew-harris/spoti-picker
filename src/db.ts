@@ -5,7 +5,7 @@ import { env } from "./env.ts";
 export * as schema from "./schema.ts";
 
 export const rawDb = drizzle(env.DB_PATH, {
-  logger: true,
+  logger: false,
 });
 
 export const useDb = <T>(
