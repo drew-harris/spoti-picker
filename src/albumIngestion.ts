@@ -1,13 +1,17 @@
-import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { eq, and } from "drizzle-orm";
-import { ResultAsync, fromPromise, err, ok } from "neverthrow";
 import { randomUUID } from "crypto";
-import { rawDb, useDb } from "./db";
-import { albums, userAlbums, ingestionStatus } from "./schema";
-import { ErrorWithStatus } from "./safeRoute";
+import { SpotifyApi } from "@spotify/web-api-ts-sdk";
+import { asc, eq } from "drizzle-orm";
+import { ResultAsync, err, fromPromise, ok } from "neverthrow";
+import { useDb } from "./db";
 import { log } from "./logging";
+import { ErrorWithStatus } from "./safeRoute";
+import { albums, ingestionStatus, userAlbums } from "./schema";
 
-export type IngestionStatus = "pending" | "in_progress" | "completed" | "failed";
+export type IngestionStatus =
+  | "pending"
+  | "in_progress"
+  | "completed"
+  | "failed";
 
 export interface AlbumData {
   id: string;
@@ -30,10 +34,12 @@ export interface IngestionProgress {
 }
 
 // Start a new ingestion process
-export const startAlbumIngestion = (userId: string): ResultAsync<string, Error> => {
+export const startAlbumIngestion = (
+  userId: string,
+): ResultAsync<string, Error> => {
   return useDb(async (db) => {
     const ingestionId = randomUUID();
-    
+
     // Create ingestion status record
     await db.insert(ingestionStatus).values({
       id: ingestionId,
@@ -49,7 +55,9 @@ export const startAlbumIngestion = (userId: string): ResultAsync<string, Error> 
 };
 
 // Get ingestion progress
-export const getIngestionProgress = (userId: string): ResultAsync<IngestionProgress | null, Error> => {
+export const getIngestionProgress = (
+  userId: string,
+): ResultAsync<IngestionProgress | null, Error> => {
   return useDb(async (db) => {
     const result = await db
       .select()
@@ -82,14 +90,17 @@ export const getIngestionProgress = (userId: string): ResultAsync<IngestionProgr
 // Process albums in batches
 export const processAlbumBatch = async (
   spotify: SpotifyApi,
-  userId: string,
-  ingestionId: string,
   offset: number = 0,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<ResultAsync<{ albums: AlbumData[]; hasMore: boolean }, Error>> => {
   return fromPromise(
     spotify.currentUser.albums.savedAlbums(limit as 50, offset),
-    (e) => new ErrorWithStatus("Failed to fetch albums from Spotify", "INTERNAL_SERVER_ERROR", { cause: e })
+    (e) =>
+      new ErrorWithStatus(
+        "Failed to fetch albums from Spotify",
+        "INTERNAL_SERVER_ERROR",
+        { cause: e },
+      ),
   ).andThen((response) => {
     const albums: AlbumData[] = response.items.map((item) => ({
       id: item.album.id,
@@ -111,7 +122,7 @@ export const processAlbumBatch = async (
 // Save albums to database
 export const saveAlbumsToDatabase = (
   userId: string,
-  albumData: AlbumData[]
+  albumData: AlbumData[],
 ): ResultAsync<void, Error> => {
   return useDb(async (db) => {
     for (const album of albumData) {
@@ -146,7 +157,13 @@ export const saveAlbumsToDatabase = (
           albumId: album.id,
           spotifyAddedAt: album.spotifyAddedAt,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: [userAlbums.userId, userAlbums.albumId],
+          set: {
+            addedAt: new Date(),
+            spotifyAddedAt: album.spotifyAddedAt,
+          },
+        });
     }
   });
 };
@@ -160,7 +177,7 @@ export const updateIngestionProgress = (
     processedAlbums: number;
     errorMessage: string;
     completedAt: Date;
-  }>
+  }>,
 ): ResultAsync<void, Error> => {
   return useDb(async (db) => {
     const updateData: any = { ...updates };
@@ -178,7 +195,7 @@ export const updateIngestionProgress = (
 // Main ingestion function
 export const ingestUserAlbums = async (
   spotify: SpotifyApi,
-  userId: string
+  userId: string,
 ): Promise<ResultAsync<void, Error>> => {
   // Start ingestion
   const ingestionResult = await startAlbumIngestion(userId);
@@ -198,7 +215,7 @@ export const ingestUserAlbums = async (
 
     // Process albums in batches
     while (hasMore) {
-      const batchResult = await processAlbumBatch(spotify, userId, ingestionId, offset);
+      const batchResult = await processAlbumBatch(spotify, offset);
       if (batchResult.isErr()) {
         await updateIngestionProgress(ingestionId, {
           status: "failed",
@@ -208,7 +225,7 @@ export const ingestUserAlbums = async (
       }
 
       const { albums, hasMore: batchHasMore } = batchResult.value;
-      
+
       // Save albums to database
       const saveResult = await saveAlbumsToDatabase(userId, albums);
       if (saveResult.isErr()) {
@@ -229,7 +246,10 @@ export const ingestUserAlbums = async (
         processedAlbums: totalProcessed,
       });
 
-      log.info({ userId, ingestionId, processed: totalProcessed }, "Processed album batch");
+      log.info(
+        { userId, ingestionId, processed: totalProcessed },
+        "Processed album batch",
+      );
     }
 
     // Mark as completed
@@ -238,7 +258,10 @@ export const ingestUserAlbums = async (
       completedAt: new Date(),
     });
 
-    log.info({ userId, ingestionId, totalProcessed }, "Album ingestion completed");
+    log.info(
+      { userId, ingestionId, totalProcessed },
+      "Album ingestion completed",
+    );
     return ok(undefined);
   } catch (error) {
     await updateIngestionProgress(ingestionId, {
@@ -250,7 +273,9 @@ export const ingestUserAlbums = async (
 };
 
 // Get user's albums from database
-export const getUserAlbumsFromDatabase = (userId: string): ResultAsync<AlbumData[], Error> => {
+export const getUserAlbumsFromDatabase = (
+  userId: string,
+): ResultAsync<AlbumData[], Error> => {
   return useDb(async (db) => {
     const result = await db
       .select({
@@ -265,7 +290,7 @@ export const getUserAlbumsFromDatabase = (userId: string): ResultAsync<AlbumData
       .from(userAlbums)
       .innerJoin(albums, eq(userAlbums.albumId, albums.id))
       .where(eq(userAlbums.userId, userId))
-      .orderBy(userAlbums.addedAt);
+      .orderBy(asc(userAlbums.addedAt));
 
     return result.map((row) => ({
       id: row.id,
@@ -277,4 +302,4 @@ export const getUserAlbumsFromDatabase = (userId: string): ResultAsync<AlbumData
       spotifyAddedAt: row.spotifyAddedAt || undefined,
     }));
   });
-}; 
+};
