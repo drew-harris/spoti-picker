@@ -15,6 +15,13 @@
       "when": 1750720139811,
       "tag": "0001_panoramic_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1750828981086,
+      "tag": "0002_illegal_silver_fox",
+      "breakpoints": true
     }
   ]
 }

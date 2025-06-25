@@ -1,39 +1,53 @@
-import type { InferRouterOutputs } from "@orpc/server";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import type { router } from "../api";
 import { orpc } from "../fetcher";
-
-export type Album = InferRouterOutputs<typeof router>["album"]["getAlbums"][0];
-
-export const AlbumView = ({ album }: { album: Album }) => {
-  return (
-    <a
-      href={album.url}
-      className="border border-neutral-800 text-center flex flex-col items-center p-2 rounded"
-    >
-      <h1>{album.name}</h1>
-      <img className="w-30 h-30 md:w-50 md:h-50" src={album.img} />
-    </a>
-  );
-};
+import { AlbumView, type AlbumFromDb } from "../components/AlbumView";
+import { IngestionProgressView } from "../components/IngestionProgressView";
+import { AlbumGrid } from "../components/AlbumGrid";
+import { RandomAlbumDisplay } from "../components/RandomAlbumDisplay";
+import { IngestionControls } from "../components/IngestionControls";
 
 export const Homepage = () => {
-  const { data } = useQuery(orpc.album.getAlbums.queryOptions());
-  const { data: isDev } = useQuery(orpc.isDev.queryOptions());
   const [randomNum, setRandomNum] = useState(Math.floor(Math.random() * 100));
 
+  // Queries
+  const { data: albums } = useQuery(orpc.album.getAlbumsFromDatabase.queryOptions());
+  const { data: ingestionProgress } = useQuery(orpc.album.getIngestionProgress.queryOptions());
+  const { data: isDev } = useQuery(orpc.isDev.queryOptions());
+
+  const currentAlbum = albums?.at(randomNum);
+
+  const handleRandomPick = () => {
+    setRandomNum(Math.floor(Math.random() * (albums?.length || 1)));
+  };
+
   return (
-    <div className="h-screen">
-      {data && (
-        <AlbumView key={data?.at(randomNum)!.id} album={data?.at(randomNum)!} />
-      )}
-      <div className="grid p-2 gap-2 grid-cols-2 md:grid-cols-4">
-        {data?.map((album) => (
-          <AlbumView key={album.id} album={album} />
-        ))}
+    <div className="h-screen p-4">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-4">Spotify Album Picker</h1>
+
+        {/* Ingestion Controls */}
+        <IngestionControls 
+          onRandomPick={handleRandomPick}
+          albumsCount={albums?.length || 0}
+        />
+
+        {/* Ingestion Progress - only show if not completed */}
+        {ingestionProgress && ingestionProgress.status !== 'completed' && (
+          <IngestionProgressView progress={ingestionProgress} />
+        )}
       </div>
-      {isDev && <div>Dev mode</div>}
+
+      {/* Random Album Display */}
+      {currentAlbum && (
+        <RandomAlbumDisplay album={currentAlbum} />
+      )}
+
+      {/* Album Grid */}
+      <AlbumGrid albums={albums || []} />
+
+      {isDev && <div className="fixed bottom-4 right-4 bg-yellow-600 text-black px-2 py-1 rounded text-xs">Dev mode</div>}
     </div>
   );
 };
