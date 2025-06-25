@@ -2,11 +2,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "../fetcher";
 
 interface IngestionControlsProps {
-  onRandomPick: () => void;
   albumsCount: number;
 }
 
-export const IngestionControls = ({ onRandomPick, albumsCount }: IngestionControlsProps) => {
+export const IngestionControls = ({ albumsCount }: IngestionControlsProps) => {
   const queryClient = useQueryClient();
 
   const startIngestionMutation = useMutation({
@@ -25,13 +24,6 @@ export const IngestionControls = ({ onRandomPick, albumsCount }: IngestionContro
         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {startIngestionMutation.isPending ? 'Starting...' : 'Start Album Ingestion'}
-      </button>
-      
-      <button
-        onClick={onRandomPick}
-        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-      >
-        Pick Random Album
       </button>
     </div>
   );
