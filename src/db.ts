@@ -4,7 +4,9 @@ import { env } from "./env.ts";
 
 export * as schema from "./schema.ts";
 
-export const rawDb = drizzle(env.DB_PATH);
+export const rawDb = drizzle(env.DB_PATH, {
+  logger: true,
+});
 
 export const useDb = <T>(
   useFn: (db: typeof rawDb) => Promise<T>,

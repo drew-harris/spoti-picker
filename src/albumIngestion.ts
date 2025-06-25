@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
-import { asc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { ResultAsync, err, fromPromise, ok } from "neverthrow";
 import { useDb } from "./db";
 import { log } from "./logging";
@@ -290,7 +290,7 @@ export const getUserAlbumsFromDatabase = (
       .from(userAlbums)
       .innerJoin(albums, eq(userAlbums.albumId, albums.id))
       .where(eq(userAlbums.userId, userId))
-      .orderBy(asc(userAlbums.addedAt));
+      .orderBy(desc(userAlbums.spotifyAddedAt));
 
     return result.map((row) => ({
       id: row.id,
