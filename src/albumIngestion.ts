@@ -6,22 +6,13 @@ import { useDb } from "./db";
 import { log } from "./logging";
 import { ErrorWithStatus } from "./safeRoute";
 import { albums, ingestionStatus, userAlbums } from "./schema";
+import type { Spotify } from "./lib/spotify";
 
 export type IngestionStatus =
   | "pending"
   | "in_progress"
   | "completed"
   | "failed";
-
-export interface AlbumData {
-  id: string;
-  name: string;
-  url: string;
-  img?: string;
-  artist: string;
-  releaseDate?: string;
-  spotifyAddedAt?: string;
-}
 
 export interface IngestionProgress {
   id: string;
@@ -92,7 +83,9 @@ export const processAlbumBatch = async (
   spotify: SpotifyApi,
   offset: number = 0,
   limit: number = 50,
-): Promise<ResultAsync<{ albums: AlbumData[]; hasMore: boolean }, Error>> => {
+): Promise<
+  ResultAsync<{ albums: Spotify.AlbumData[]; hasMore: boolean }, Error>
+> => {
   return fromPromise(
     spotify.currentUser.albums.savedAlbums(limit as 50, offset),
     (e) =>
@@ -102,7 +95,7 @@ export const processAlbumBatch = async (
         { cause: e },
       ),
   ).andThen((response) => {
-    const albums: AlbumData[] = response.items.map((item) => ({
+    const albums: Spotify.AlbumData[] = response.items.map((item) => ({
       id: item.album.id,
       name: item.album.name,
       url: item.album.external_urls.spotify,
@@ -122,7 +115,7 @@ export const processAlbumBatch = async (
 // Save albums to database
 export const saveAlbumsToDatabase = (
   userId: string,
-  albumData: AlbumData[],
+  albumData: Spotify.AlbumData[],
 ): ResultAsync<void, Error> => {
   return useDb(async (db) => {
     for (const album of albumData) {
@@ -270,36 +263,4 @@ export const ingestUserAlbums = async (
     });
     return err(new Error("Ingestion failed", { cause: error }));
   }
-};
-
-// Get user's albums from database
-export const getUserAlbumsFromDatabase = (
-  userId: string,
-): ResultAsync<AlbumData[], Error> => {
-  return useDb(async (db) => {
-    const result = await db
-      .select({
-        id: albums.id,
-        name: albums.name,
-        url: albums.url,
-        img: albums.img,
-        artist: albums.artist,
-        releaseDate: albums.releaseDate,
-        spotifyAddedAt: userAlbums.spotifyAddedAt,
-      })
-      .from(userAlbums)
-      .innerJoin(albums, eq(userAlbums.albumId, albums.id))
-      .where(eq(userAlbums.userId, userId))
-      .orderBy(desc(userAlbums.spotifyAddedAt));
-
-    return result.map((row) => ({
-      id: row.id,
-      name: row.name,
-      url: row.url || "",
-      img: row.img || undefined,
-      artist: row.artist || "Unknown Artist",
-      releaseDate: row.releaseDate || undefined,
-      spotifyAddedAt: row.spotifyAddedAt || undefined,
-    }));
-  });
 };

@@ -4,18 +4,11 @@ import {} from "drizzle-orm";
 import { Hono } from "hono";
 import { pinoLogger } from "hono-pino";
 import { Err, Ok } from "neverthrow";
-import {
-  type AlbumData,
-  type IngestionProgress,
-  getIngestionProgress,
-  getUserAlbumsFromDatabase,
-  ingestUserAlbums,
-} from "./albumIngestion";
+import { getIngestionProgress, ingestUserAlbums } from "./albumIngestion";
 import { auth } from "./auth";
-import { cachedResult } from "./caching";
 import { log } from "./logging";
 import { unwrap } from "./safeRoute";
-import { buildSdkFromUserId, getUsersAlbums } from "./spotify";
+import { Spotify } from "./lib/spotify";
 
 export type ApiType = typeof api;
 
@@ -47,8 +40,7 @@ const authedOnly = os
   });
 
 const withSpotify = authedOnly.use(async ({ next, context }) => {
-  const sdkResult = buildSdkFromUserId(context.session.user.id);
-
+  const sdkResult = Spotify.buildSdkFromUserId(context.session.user.id);
   return next({
     context: {
       ...context,
@@ -59,30 +51,8 @@ const withSpotify = authedOnly.use(async ({ next, context }) => {
 
 export const router = base.use(ensureUnwrap).router({
   album: {
-    // getAlbums: withSpotify.handler(async ({ context }) => {
-    //   log.info({ user: context.session.user.id }, "Fetching albums");
-    //   const albums = cachedResult(
-    //     () =>
-    //       getUsersAlbums(context.spotify).map((a) =>
-    //         a.map((album) => ({
-    //           id: album.album.id,
-    //           name: album.album.name,
-    //           url: album.album.external_urls.spotify,
-    //           img: album.album.images[1]?.url,
-    //         })),
-    //       ),
-    //     ["albums", context.session.user.id],
-    //   );
-    //   return unwrap(albums);
-    // }),
-
-    // Get albums from database
     getAlbumsFromDatabase: authedOnly.handler(async ({ context }) => {
-      log.info(
-        { user: context.session.user.id },
-        "Fetching albums from database",
-      );
-      const albums = getUserAlbumsFromDatabase(context.session.user.id);
+      const albums = Spotify.getUserAlbumsFromDatabase(context.session.user.id);
       return unwrap(albums);
     }),
 
