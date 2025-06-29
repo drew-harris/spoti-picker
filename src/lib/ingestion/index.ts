@@ -2,15 +2,16 @@ import { randomUUID } from "crypto";
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { eq } from "drizzle-orm";
 import { ResultAsync, err, fromPromise, ok } from "neverthrow";
-import { useDb } from "../../db";
+import { DatabaseError, useDb } from "../../db";
 import { log } from "../../logging";
 import { ErrorWithStatus } from "../../safeRoute";
-import type { Spotify } from "../spotify";
+import { Spotify } from "../spotify";
 import { albums, userAlbums } from "../spotify/spotify.sql";
 import { ingestionStatus } from "./ingestion.sql";
 
 export namespace Ingestion {
   export class IngestionError extends ErrorWithStatus {
+    public errType = "IngestionError" as const;
     constructor(...args: ConstructorParameters<typeof ErrorWithStatus>) {
       super(...args);
     }
@@ -33,9 +34,7 @@ export namespace Ingestion {
   }
 
   // Start a new ingestion process
-  export const startAlbumIngestion = (
-    userId: string,
-  ): ResultAsync<string, IngestionError> => {
+  export const startAlbumIngestion = (userId: string) => {
     return useDb(async (db) => {
       const ingestionId = randomUUID();
 
@@ -54,9 +53,7 @@ export namespace Ingestion {
   };
 
   // Get ingestion progress
-  export const getIngestionProgress = (
-    userId: string,
-  ): ResultAsync<IngestionProgress | null, IngestionError> => {
+  export const getIngestionProgress = (userId: string) => {
     return useDb(async (db) => {
       const result = await db
         .select()
@@ -94,13 +91,13 @@ export namespace Ingestion {
   ): Promise<
     ResultAsync<
       { albums: Spotify.AlbumData[]; hasMore: boolean },
-      IngestionError
+      IngestionError | DatabaseError | Spotify.SpotifyError
     >
   > => {
     return fromPromise(
       spotify.currentUser.albums.savedAlbums(limit as 50, offset),
       (e) =>
-        new ErrorWithStatus(
+        new Spotify.SpotifyError(
           "Failed to fetch albums from Spotify",
           "INTERNAL_SERVER_ERROR",
           { cause: e },
@@ -127,7 +124,7 @@ export namespace Ingestion {
   export const saveAlbumsToDatabase = (
     userId: string,
     albumData: Spotify.AlbumData[],
-  ): ResultAsync<void, IngestionError> => {
+  ) => {
     return useDb(async (db) => {
       for (const album of albumData) {
         // Insert or update album
@@ -200,7 +197,9 @@ export namespace Ingestion {
   export const ingestUserAlbums = async (
     spotify: SpotifyApi,
     userId: string,
-  ): Promise<ResultAsync<void, IngestionError>> => {
+  ): Promise<
+    ResultAsync<void, IngestionError | DatabaseError | Spotify.SpotifyError>
+  > => {
     // Start ingestion
     const existingProgress = await getIngestionProgress(userId);
     if (existingProgress.isErr()) {

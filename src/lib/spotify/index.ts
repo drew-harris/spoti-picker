@@ -1,6 +1,6 @@
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { desc, eq } from "drizzle-orm";
-import { ResultAsync, fromPromise } from "neverthrow";
+import { fromPromise } from "neverthrow";
 import { auth } from "../../auth";
 import { useDb } from "../../db";
 import { env } from "../../env";
@@ -19,6 +19,7 @@ export namespace Spotify {
   }
 
   export class SpotifyError extends ErrorWithStatus {
+    public errType = "SpotifyError" as const;
     constructor(...args: ConstructorParameters<typeof ErrorWithStatus>) {
       super(...args);
     }
@@ -63,9 +64,7 @@ export namespace Spotify {
   };
 
   // Get user's albums from database
-  export const getUserAlbumsFromDatabase = (
-    userId: string,
-  ): ResultAsync<AlbumData[], SpotifyError> => {
+  export const getUserAlbumsFromDatabase = (userId: string) => {
     return useDb(async (db) => {
       const result = await db
         .select({
@@ -82,15 +81,18 @@ export namespace Spotify {
         .where(eq(userAlbums.userId, userId))
         .orderBy(desc(userAlbums.spotifyAddedAt));
 
-      return result.map((row) => ({
-        id: row.id,
-        name: row.name,
-        url: row.url || "",
-        img: row.img || undefined,
-        artist: row.artist || "Unknown Artist",
-        releaseDate: row.releaseDate || undefined,
-        spotifyAddedAt: row.spotifyAddedAt || undefined,
-      }));
+      return result.map(
+        (row) =>
+          ({
+            id: row.id,
+            name: row.name,
+            url: row.url || "",
+            img: row.img || undefined,
+            artist: row.artist || "Unknown Artist",
+            releaseDate: row.releaseDate || undefined,
+            spotifyAddedAt: row.spotifyAddedAt || undefined,
+          }) satisfies AlbumData,
+      );
     });
   };
 }

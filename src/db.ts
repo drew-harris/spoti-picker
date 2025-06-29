@@ -9,7 +9,7 @@ export const rawDb = drizzle(env.DB_PATH, {
 });
 
 export class DatabaseError extends ErrorWithStatus {
-  public errType = "DatabaseError";
+  public errType = "DatabaseError" as const;
   constructor(...args: ConstructorParameters<typeof ErrorWithStatus>) {
     super(...args);
   }
