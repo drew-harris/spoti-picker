@@ -23,4 +23,3 @@ export const AlbumView = ({ album }: { album: AlbumFromDb }) => {
     </a>
   );
 };
-

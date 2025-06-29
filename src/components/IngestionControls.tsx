@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { orpc } from "../fetcher";
+import { useAlbums } from "../hooks/useAlbums";
 
-interface IngestionControlsProps {
-  albumsCount: number;
-}
-
-export const IngestionControls = ({ albumsCount }: IngestionControlsProps) => {
+export const IngestionControls = () => {
   const queryClient = useQueryClient();
+  const { albums } = useAlbums();
 
   const startIngestionMutation = useMutation({
     mutationFn: () => orpc.album.startIngestion.call(),
@@ -32,4 +30,3 @@ export const IngestionControls = ({ albumsCount }: IngestionControlsProps) => {
     </button>
   );
 };
-
