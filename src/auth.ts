@@ -1,6 +1,9 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { rawDb, schema } from "./db";
+import * as authSchema from "./auth.sql.ts";
+import * as spotifySchema from "./lib/spotify/spotify.sql.ts";
+
+import { rawDb } from "./db.ts";
 import { env } from "./env";
 
 export const auth = betterAuth({
@@ -12,7 +15,10 @@ export const auth = betterAuth({
   },
   database: drizzleAdapter(rawDb, {
     provider: "sqlite",
-    schema: schema,
+    schema: {
+      ...authSchema,
+      ...spotifySchema,
+    },
   }),
 
   socialProviders: {

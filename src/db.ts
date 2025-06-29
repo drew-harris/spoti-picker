@@ -4,13 +4,12 @@ import { ResultAsync, fromPromise } from "neverthrow";
 import { env } from "./env.ts";
 import { ErrorWithStatus } from "./safeRoute.ts";
 
-export * as schema from "./schema.ts";
-
 export const rawDb = drizzle(env.DB_PATH, {
   logger: false,
 });
 
 export class DatabaseError extends ErrorWithStatus {
+  public errType = "DatabaseError";
   constructor(...args: ConstructorParameters<typeof ErrorWithStatus>) {
     super(...args);
   }

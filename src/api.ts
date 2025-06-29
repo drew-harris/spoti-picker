@@ -4,11 +4,11 @@ import {} from "drizzle-orm";
 import { Hono } from "hono";
 import { pinoLogger } from "hono-pino";
 import { Err, Ok } from "neverthrow";
-import { getIngestionProgress, ingestUserAlbums } from "./albumIngestion";
 import { auth } from "./auth";
+import { Ingestion } from "./lib/ingestion";
+import { Spotify } from "./lib/spotify";
 import { log } from "./logging";
 import { unwrap } from "./safeRoute";
-import { Spotify } from "./lib/spotify";
 
 export type ApiType = typeof api;
 
@@ -60,51 +60,14 @@ export const router = base.use(ensureUnwrap).router({
     startIngestion: withSpotify.handler(async ({ context }) => {
       log.info({ user: context.session.user.id }, "Starting album ingestion");
 
-      // Check if there's already an active ingestion
-      const existingProgress = await getIngestionProgress(
-        context.session.user.id,
-      );
-      if (existingProgress.isErr()) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", {
-          message: "Failed to check existing ingestion",
-        });
-      }
-
-      if (
-        existingProgress.value &&
-        (existingProgress.value.status === "pending" ||
-          existingProgress.value.status === "in_progress")
-      ) {
-        throw new ORPCError("CONFLICT", {
-          message: "Album ingestion already in progress",
-        });
-      }
-
-      // Start ingestion in background
-      ingestUserAlbums(context.spotify, context.session.user.id).then(
-        (result) => {
-          const awaitedResult = result;
-          if (awaitedResult instanceof Err) {
-            console.error(awaitedResult.error);
-            log.error(
-              { user: context.session.user.id, error: awaitedResult.error },
-              "Album ingestion failed",
-            );
-          } else {
-            log.info(
-              { user: context.session.user.id },
-              "Album ingestion completed successfully",
-            );
-          }
-        },
-      );
+      Ingestion.ingestUserAlbums(context.spotify, context.session.user.id);
 
       return { success: true, message: "Album ingestion started" };
     }),
 
     // Get ingestion progress
     getIngestionProgress: authedOnly.handler(async ({ context }) => {
-      const progress = getIngestionProgress(context.session.user.id);
+      const progress = Ingestion.getIngestionProgress(context.session.user.id);
       return unwrap(progress);
     }),
   },
