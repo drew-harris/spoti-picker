@@ -3,8 +3,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as authSchema from "./auth.sql.ts";
 import * as spotifySchema from "./lib/spotify/spotify.sql.ts";
 
+import { fromPromise } from "neverthrow";
 import { rawDb } from "./db.ts";
 import { env } from "./env";
+import { ErrorWithStatus } from "./safeRoute.ts";
 
 export const auth = betterAuth({
   session: {
@@ -38,3 +40,22 @@ export const auth = betterAuth({
     },
   },
 });
+
+export const getTokensFromUserId = (userId: string) => {
+  return fromPromise(
+    auth.api.getAccessToken({
+      body: {
+        providerId: "spotify",
+        userId,
+      },
+    }),
+    (e) =>
+      new ErrorWithStatus(
+        "Couldn't get access token",
+        "INTERNAL_SERVER_ERROR",
+        {
+          cause: e,
+        },
+      ),
+  );
+};

@@ -1,10 +1,10 @@
 import { SpotifyApi } from "@spotify/web-api-ts-sdk";
 import { desc, eq } from "drizzle-orm";
 import { fromPromise } from "neverthrow";
-import { auth } from "../../auth";
+import { getTokensFromUserId } from "../../auth";
 import { useDb } from "../../db";
 import { env } from "../../env";
-import { ErrorWithStatus } from "../../safeRoute";
+import { ErrorWithStatus, type SuccessVariant } from "../../safeRoute";
 import { albums, userAlbums } from "./spotify.sql";
 
 export namespace Spotify {
@@ -25,30 +25,19 @@ export namespace Spotify {
     }
   }
 
+  const buildSdkFromTokens = (
+    tokens: SuccessVariant<ReturnType<typeof getTokensFromUserId>>,
+  ) => {
+    return SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
+      access_token: tokens.accessToken!,
+      token_type: "Bearer",
+      expires_in: 9999,
+      refresh_token: "",
+    });
+  };
+
   export const buildSdkFromUserId = (userId: string) =>
-    fromPromise(
-      auth.api.getAccessToken({
-        body: {
-          providerId: "spotify",
-          userId,
-        },
-      }),
-      (e) =>
-        new ErrorWithStatus(
-          "Couldn't get access token",
-          "INTERNAL_SERVER_ERROR",
-          {
-            cause: e,
-          },
-        ),
-    ).map((tokens) =>
-      SpotifyApi.withAccessToken(env.SPOTIFY_CLIENT_ID, {
-        access_token: tokens.accessToken!,
-        token_type: "Bearer",
-        expires_in: 9999,
-        refresh_token: "", // Better auth handles refresh
-      }),
-    );
+    getTokensFromUserId(userId).map(buildSdkFromTokens);
 
   export const getUsersAlbums = (spotify: SpotifyApi) => {
     const albums = fromPromise(
