@@ -77,7 +77,7 @@ export namespace Spotify {
             name: row.name,
             url: row.url || "",
             img: row.img || undefined,
-            artist: row.artist || "Unknown Artist",
+            artist: row.artist,
             releaseDate: row.releaseDate || undefined,
             spotifyAddedAt: row.spotifyAddedAt || undefined,
           }) satisfies AlbumData,
